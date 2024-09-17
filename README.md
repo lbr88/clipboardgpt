@@ -23,5 +23,6 @@ bindsym $mod+c exec /home/username/git/clipboardgpt/grammargpt.sh
 ## Usage
 1. Mark some text you want to reply to or grammar check
 2. Press the shortcut from step 4 in the installation
-3. The generated text will be copied to the clipboard
-4. Paste the generated text
+3. Wait for the tooltip to appear with the generated text
+4. The generated text is now copied to the clipboard
+5. Paste the generated text
