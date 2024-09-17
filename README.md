@@ -17,7 +17,7 @@ MODEL="gpt-4o" # the model to use
 example:
 ```config
 bindsym $mod+Ctrl+c exec /home/username/git/clipboardgpt/replygpt.sh
-bindsym $mod+c exec /home/lrasmussen/git/clipboardgpt/grammargpt.sh
+bindsym $mod+c exec /home/username/git/clipboardgpt/grammargpt.sh
 ```
 
 ## Usage
