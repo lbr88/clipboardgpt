@@ -10,4 +10,4 @@ if [ -z "$MODEL" ]; then
   echo "Please set the MODEL environment variable"
   exit 1
 fi
-pipenv run ./clipboardgpt.py --type "reply" --model "${MODEL}" --context "My name is ${NAME}" $@
+pipenv run ./clipboardgpt.py --type "reply" --model "${MODEL}" --context "Use my name to sign off the message if it's an email otherwise don't use my name: My name: ${NAME}" $@

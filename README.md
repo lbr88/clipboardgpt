@@ -1,6 +1,7 @@
 # Clipboard gpt
 This tool is a simple clipboard manager that uses the Openai API to generate text based on the clipboard content.
-
+## Demo
+![Demo](https://raw.githubusercontent.com/lbr88/clipboardgpt/main/clipboardgpt-demo.gif)
 ## Installation
 1. Clone the repository
 2. Install the requirements
