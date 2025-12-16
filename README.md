@@ -2,24 +2,47 @@
 This tool is a simple clipboard manager that uses the Openai API to generate text based on the clipboard content.
 ## Demo
 ![Demo](https://raw.githubusercontent.com/lbr88/clipboardgpt/main/clipboardgpt-demo.gif)
+## Prerequisites
+- [uv](https://github.com/astral-sh/uv)
+- `xsel` or `xclip` (for clipboard access)
+- `xdotool` (for window title detection)
+
 ## Installation
-1. Clone the repository
-2. Install the requirements
-```bash
-uv sync
-```
-3. Create a .env file with the following content:
-```
-OPENAI_API_KEY=your_openai_api_key
-NAME="your_name" # used for the replygpt to know who is talking
-MODEL="gpt-4o" # the model to use
-```
-4. Configure shortcuts in i3 or your window manager to run the script
-example:
-```config
-bindsym $mod+Ctrl+c exec /home/username/git/clipboardgpt/replygpt.sh
-bindsym $mod+c exec /home/username/git/clipboardgpt/grammargpt.sh
-```
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/lbr88/clipboardgpt.git
+   cd clipboardgpt
+   ```
+
+2. Install the tool:
+   ```bash
+   uv tool install .
+   ```
+   *Note: Ensure `~/.local/bin` is in your `$PATH`.*
+
+3. Configuration:
+   The tool uses `~/.config/clipboardgpt/config.toml`.
+
+   **Interactive Setup (Recommended):**
+   Run the setup wizard to create your configuration file:
+   ```bash
+   grammargpt --setup
+   ```
+   
+   **Automatic Migration:** If you have an old `.env` file, simply run `grammargpt` or `replygpt` once, and it will automatically migrate your settings to the new config file.
+
+   **Manual Configuration:** Create `~/.config/clipboardgpt/config.toml`:
+   ```toml
+   openai_api_key = "your_openai_api_key"
+   name = "your_name" # used for the replygpt to know who is talking
+   model = "gpt-4o" # the model to use
+   ```
+
+4. Configure shortcuts in i3 or your window manager:
+   ```config
+   bindsym $mod+Ctrl+c exec replygpt
+   bindsym $mod+c exec grammargpt
+   ```
 
 ## Usage
 1. Mark some text you want to reply to or grammar check
