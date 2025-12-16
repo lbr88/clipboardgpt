@@ -12,299 +12,341 @@ from clipboardgpt.utils import render_template
 
 TEST_CASES: dict[str, list[dict[str, Any]]] = {
     "grammar": [
-        # English tests
+        # English - full emails
         {
-            "name": "English - basic errors",
-            "input": "i dont think this are working good",
+            "name": "English - business email with errors",
+            "input": (
+                "hi john\n\n"
+                "i wanted to follow up on our conversation from yesterday. "
+                "i think we should definately move forward with the project but "
+                "there still some concerns i wanna address before we finalize everything.\n\n"
+                "first off the budget dont seem right to me. we discussed 50k but "
+                "the proposal your team sent shows 65k which is way more then we agreed on. "
+                "can you look into this and get back to me asap?\n\n"
+                "also i havent recieved the technical specs yet. we gonna need those "
+                "before the meeting on friday.\n\n"
+                "let me know what you think\n"
+                "thanks"
+            ),
             "language": "English",
-            "expect": "corrected text only, no explanation",
-            "context": {},
+            "expect": "corrected email, fix spelling/grammar, keep structure",
+            "context": {"app": "email"},
         },
         {
-            "name": "English - already correct",
-            "input": "This sentence is already correct.",
+            "name": "English - casual work message",
+            "input": (
+                "hey team just wanted to give u all a quick update on where we're at. "
+                "the deployment went smoothe last night and everythings running good so far. "
+                "we did ran into a few minor issues but nothing major. gonna keep monitoring "
+                "throughout the day and ill let you know if anything comes up. "
+                "btw does anyone know if the standup is still at 10 or did it get moved?"
+            ),
             "language": "English",
-            "expect": "same or very similar text returned",
-            "context": {},
-        },
-        {
-            "name": "English - informal contractions",
-            "input": "i wanna tell u about the thing",
-            "language": "English",
-            "expect": "fix wanna→want to, u→you",
-            "context": {},
-        },
-        {
-            "name": "English - gonna/gotta",
-            "input": "im gonna go now cuz i gotta leave",
-            "language": "English",
-            "expect": "fix gonna→going to, gotta→got to, cuz→because",
-            "context": {},
-        },
-        {
-            "name": "English - formal email",
-            "input": "hey i need the report asap thx",
-            "language": "English",
-            "expect": "corrected formal text",
-            "context": {"context": "formal business email"},
-        },
-        {
-            "name": "English - casual chat",
-            "input": "ur gonna love this lol",
-            "language": "English",
-            "expect": "corrected text",
+            "expect": "corrected text, informal contractions fixed",
             "context": {"app": "chat"},
         },
         {
-            "name": "English - punctuation only",
-            "input": "Hello how are you I am fine",
+            "name": "English - technical documentation",
+            "input": (
+                "the getData() function dont return the expected results when the "
+                "input parameter are null. i think this is because we forgot to add "
+                "the null check in line 42. also the handleError() method is'nt being "
+                "called properly when exceptions occur. we should probly refactor this "
+                "whole module cuz its getting to complex."
+            ),
             "language": "English",
-            "expect": "add proper punctuation",
+            "expect": "fix grammar, preserve code references like getData()",
             "context": {},
         },
+        # Danish - full emails
         {
-            "name": "English - capitalization",
-            "input": "i went to paris and saw the eiffel tower",
-            "language": "English",
-            "expect": "fix capitalization of I, Paris, Eiffel Tower",
-            "context": {},
-        },
-        # Danish tests
-        {
-            "name": "Danish - basic errors",
-            "input": "jeg tror ikke det her virke godt",
+            "name": "Danish - business email",
+            "input": (
+                "hej peter\n\n"
+                "tak for din mail. jeg har kigget på de dokumenter du sendte og "
+                "jeg har et par spørgsmål jeg gerne vil have svar på.\n\n"
+                "for det første så forstår jeg ikke helt hvorfor prisen er steget "
+                "så meget siden sidst. vi havde aftalt 25000 kr men nu står der 32000. "
+                "kan du forklare hvad der er sket?\n\n"
+                "derudover så mangler der stadig nogle bilag som jeg ska bruge til "
+                "regnskabet. kan du sende dem hurtigst mulig?\n\n"
+                "venlig hilsen\n"
+                "lars"
+            ),
             "language": "Danish",
-            "expect": "corrected Danish text only, must stay in Danish",
-            "context": {},
+            "expect": "corrected Danish, stay in Danish, fix ska→skal",
+            "context": {"app": "email"},
         },
         {
-            "name": "Danish - spelling",
-            "input": "hvad sker der, ska vi mødes imorgen",
+            "name": "Danish - casual chat",
+            "input": (
+                "hej skal vi mødes imorgen og snakke om projektet? "
+                "jeg tænker vi kan tage en kop kaffe og gennemgå det hele. "
+                "har du tid ved 14 tiden eller passer det bedre om formiddagen?"
+            ),
             "language": "Danish",
-            "expect": "fix ska→skal, imorgen→i morgen, stay in Danish",
-            "context": {},
+            "expect": "fix imorgen→i morgen, stay in Danish",
+            "context": {"app": "chat"},
         },
+        # German
         {
-            "name": "Danish - formal",
-            "input": "hej jeg vil gerne bestille en tid",
-            "language": "Danish",
-            "expect": "polished Danish, no translation",
-            "context": {"context": "formal email"},
-        },
-        # German tests
-        {
-            "name": "German - basic errors",
-            "input": "ich haben gestern ein film gesehen",
+            "name": "German - formal email",
+            "input": (
+                "sehr geehrte damen und herren\n\n"
+                "ich schreibe ihnen bezüglich meiner bestellung vom letzten monat. "
+                "ich haben die ware noch nicht erhalten und wollte fragen ob sie mir "
+                "sagen können wann ich mit der lieferung rechnen kann.\n\n"
+                "die bestellnummer ist 12345 und ich habe am 15. november bestellt.\n\n"
+                "mit freundlichen grüßen"
+            ),
             "language": "German",
-            "expect": "corrected German, haben→habe, ein→einen",
-            "context": {},
+            "expect": "fix haben→habe, capitalize nouns, stay in German",
+            "context": {"app": "email"},
         },
+        # Spanish
         {
-            "name": "German - capitalization",
-            "input": "das auto ist sehr schnell und die straße ist lang",
-            "language": "German",
-            "expect": "fix noun capitalization: Auto, Straße",
-            "context": {},
-        },
-        # Spanish tests
-        {
-            "name": "Spanish - basic errors",
-            "input": "yo quere ir al tienda mañana",
+            "name": "Spanish - customer inquiry",
+            "input": (
+                "hola buenas tardes\n\n"
+                "queria preguntar sobre los precios de sus servicios. "
+                "vi en su pagina web que ofrecen varios paquetes pero no me "
+                "quedo claro cual es la diferencia entre ellos.\n\n"
+                "tambien me gustaria saber si tienen algun descuento para "
+                "empresas pequeñas como la mia.\n\n"
+                "gracias de antemano"
+            ),
             "language": "Spanish",
-            "expect": "corrected Spanish: quiero, a la tienda",
-            "context": {},
+            "expect": "add accents (quería, página, quedó, también), stay in Spanish",
+            "context": {"app": "email"},
         },
+        # French
         {
-            "name": "Spanish - accents",
-            "input": "como estas, que vas a hacer manana",
-            "language": "Spanish",
-            "expect": "add accents: Cómo estás, mañana",
-            "context": {},
-        },
-        # French tests
-        {
-            "name": "French - basic errors",
-            "input": "je suis alle au magasin hier",
+            "name": "French - professional email",
+            "input": (
+                "bonjour\n\n"
+                "je vous ecris pour vous informer que j'ai bien recu votre proposition. "
+                "j'ai examine les documents et j'ai quelques questions a vous poser.\n\n"
+                "premierement je ne comprend pas pourquoi le delai est si long. "
+                "vous aviez dit deux semaines mais maintenant vous parlez de quatre semaines.\n\n"
+                "deuxiemement est-ce que le prix inclut la livraison?\n\n"
+                "merci de votre reponse"
+            ),
             "language": "French",
-            "expect": "corrected French: allé with accent",
-            "context": {},
-        },
-        {
-            "name": "French - gender agreement",
-            "input": "la maison est très grand et beau",
-            "language": "French",
-            "expect": "fix agreement: grande, belle",
-            "context": {},
-        },
-        # Mixed/edge cases
-        {
-            "name": "Code snippet - preserve",
-            "input": "the function getData() dont work",
-            "language": "English",
-            "expect": "fix grammar but preserve getData()",
-            "context": {},
-        },
-        {
-            "name": "Numbers and dates",
-            "input": "the meeting is on january 5th 2024 at 3pm",
-            "language": "English",
-            "expect": "proper formatting, minimal changes",
-            "context": {},
-        },
-    ],
-    "reply": [
-        # English - various tones
-        {
-            "name": "English - casual question",
-            "input": "Hey, can you help me with something?",
-            "language": "English",
-            "expect": "English response only, no meta text",
-            "context": {},
-        },
-        {
-            "name": "English - very casual/slang",
-            "input": "yo whats up, wanna grab lunch?",
-            "language": "English",
-            "expect": "casual response matching informal tone",
-            "context": {"app": "chat"},
-        },
-        {
-            "name": "English - formal request",
-            "input": "Dear Sir/Madam, I would like to inquire about your services.",
-            "language": "English",
-            "expect": "formal English response matching tone",
-            "context": {"app": "email"},
-        },
-        {
-            "name": "English - meeting request",
-            "input": "Can we schedule a meeting tomorrow?",
-            "language": "English",
-            "expect": "English response about scheduling",
-            "context": {"name": "Lars"},
-        },
-        {
-            "name": "English - thank you",
-            "input": "Thanks so much for your help!",
-            "language": "English",
-            "expect": "polite acknowledgment response",
-            "context": {},
-        },
-        {
-            "name": "English - complaint",
-            "input": "This product is terrible and I want a refund.",
-            "language": "English",
-            "expect": "professional response addressing concern",
-            "context": {"app": "email"},
-        },
-        {
-            "name": "English - invitation",
-            "input": "Would you like to come to my birthday party next Saturday?",
-            "language": "English",
-            "expect": "response to invitation",
-            "context": {},
-        },
-        {
-            "name": "English - technical question",
-            "input": "How do I fix the bug in the login page?",
-            "language": "English",
-            "expect": "helpful response, may ask for details",
-            "context": {"app": "chat"},
-        },
-        # Danish replies
-        {
-            "name": "Danish - casual",
-            "input": "Hej, kan du hjælpe mig med noget?",
-            "language": "Danish",
-            "expect": "Danish response only, must stay in Danish",
-            "context": {},
-        },
-        {
-            "name": "Danish - formal",
-            "input": "Kære kunde, tak for din henvendelse.",
-            "language": "Danish",
-            "expect": "formal Danish response",
-            "context": {"app": "email"},
-        },
-        {
-            "name": "Danish - invitation",
-            "input": "Vil du med til fest på fredag?",
-            "language": "Danish",
-            "expect": "Danish response to invitation",
-            "context": {"app": "chat"},
-        },
-        {
-            "name": "Danish - work context",
-            "input": "Kan du sende rapporten inden kl 15?",
-            "language": "Danish",
-            "expect": "Danish response about deadline",
-            "context": {},
-        },
-        # German replies
-        {
-            "name": "German - casual",
-            "input": "Hey, hast du Zeit heute Abend?",
-            "language": "German",
-            "expect": "German response, casual tone",
-            "context": {"app": "chat"},
-        },
-        {
-            "name": "German - formal",
-            "input": "Sehr geehrte Damen und Herren, ich möchte mich bewerben.",
-            "language": "German",
-            "expect": "formal German response",
-            "context": {"app": "email"},
-        },
-        # Spanish replies
-        {
-            "name": "Spanish - casual",
-            "input": "Oye, qué tal si nos vemos mañana?",
-            "language": "Spanish",
-            "expect": "Spanish response, casual",
-            "context": {},
-        },
-        {
-            "name": "Spanish - formal",
-            "input": "Estimado señor, le escribo para solicitar información.",
-            "language": "Spanish",
-            "expect": "formal Spanish response",
-            "context": {"app": "email"},
-        },
-        # French replies
-        {
-            "name": "French - casual",
-            "input": "Salut, ça te dit d'aller au cinéma?",
-            "language": "French",
-            "expect": "French response, casual",
-            "context": {"app": "chat"},
-        },
-        {
-            "name": "French - formal",
-            "input": "Madame, Monsieur, je vous prie de bien vouloir...",
-            "language": "French",
-            "expect": "formal French response",
+            "expect": "add accents (écris, reçu, examiné, délai, etc), stay in French",
             "context": {"app": "email"},
         },
         # Edge cases
         {
-            "name": "Short message - ok",
-            "input": "ok",
+            "name": "English - already correct email",
+            "input": (
+                "Hi Sarah,\n\n"
+                "Thank you for your email. I have reviewed the documents and "
+                "everything looks good to me. I will proceed with the next steps "
+                "and keep you updated on our progress.\n\n"
+                "Best regards,\n"
+                "John"
+            ),
             "language": "English",
-            "expect": "brief acknowledgment or follow-up",
-            "context": {},
+            "expect": "return same or nearly identical text",
+            "context": {"app": "email"},
         },
         {
-            "name": "Emoji message",
-            "input": "🎉🎉🎉 Congratulations!!!",
+            "name": "English - mixed code and text",
+            "input": (
+                "hey can you check this code real quick? the function processData() "
+                "is throwing a NullPointerException when i pass an empty array to it. "
+                "i tried wrapping it in a try-catch block but that dont seem to help. "
+                "maybe we need to add a check for array.length === 0 before processing?"
+            ),
             "language": "English",
-            "expect": "celebratory response",
-            "context": {},
+            "expect": "fix grammar, preserve all code references exactly",
+            "context": {"app": "chat"},
+        },
+    ],
+    "reply": [
+        # English - full email replies
+        {
+            "name": "English - reply to project update",
+            "input": (
+                "Hi team,\n\n"
+                "I wanted to give everyone a quick update on the Q4 project. "
+                "We've completed the first phase and are now moving into testing. "
+                "There are a few blockers that need to be addressed before we can "
+                "proceed to production.\n\n"
+                "First, we're still waiting on the security review from IT. "
+                "Second, the database migration scripts haven't been tested yet. "
+                "Third, we need sign-off from legal on the new terms of service.\n\n"
+                "Can everyone please prioritize these items this week?\n\n"
+                "Thanks,\n"
+                "Sarah"
+            ),
+            "language": "English",
+            "expect": "professional reply acknowledging the update",
+            "context": {"app": "email", "name": "Lars"},
         },
         {
-            "name": "Question with context",
-            "input": "What do you think about the proposal?",
+            "name": "English - reply to meeting request",
+            "input": (
+                "Hi Lars,\n\n"
+                "I hope this email finds you well. I would like to schedule a meeting "
+                "to discuss the upcoming product launch. We need to finalize the "
+                "marketing strategy and budget allocation.\n\n"
+                "Would you be available sometime next week? I'm flexible on Tuesday "
+                "afternoon or Thursday morning. The meeting should take about an hour.\n\n"
+                "Please let me know what works best for you.\n\n"
+                "Best regards,\n"
+                "Michael"
+            ),
             "language": "English",
-            "expect": "response asking for or giving opinion",
-            "context": {"context": "business meeting follow-up"},
+            "expect": "reply confirming or suggesting alternative times",
+            "context": {"app": "email", "name": "Lars"},
+        },
+        {
+            "name": "English - reply to customer complaint",
+            "input": (
+                "To whom it may concern,\n\n"
+                "I am extremely disappointed with the service I received. I placed "
+                "an order two weeks ago and it still hasn't arrived. When I called "
+                "customer support, I was put on hold for 45 minutes and then "
+                "disconnected. This is unacceptable.\n\n"
+                "I demand a full refund and an explanation for this terrible "
+                "customer experience. If I don't hear back within 24 hours, I will "
+                "be filing a complaint with the consumer protection agency.\n\n"
+                "Regards,\n"
+                "John Smith"
+            ),
+            "language": "English",
+            "expect": "professional, apologetic response addressing concerns",
+            "context": {"app": "email"},
+        },
+        {
+            "name": "English - casual Slack message",
+            "input": (
+                "yo just pushed the fix for that bug we talked about. "
+                "can you do a quick code review when you get a chance? "
+                "nothing urgent but would be nice to get it merged before EOD. "
+                "also are you coming to the team lunch tomorrow?"
+            ),
+            "language": "English",
+            "expect": "casual response, matching informal tone",
+            "context": {"app": "chat"},
+        },
+        {
+            "name": "English - reply to job offer",
+            "input": (
+                "Dear Mr. Rasmussen,\n\n"
+                "We are pleased to inform you that after careful consideration, "
+                "we would like to offer you the position of Senior Software Engineer "
+                "at TechCorp Inc. The starting salary will be $150,000 per year, "
+                "with full benefits including health insurance, 401k matching, "
+                "and 4 weeks of paid vacation.\n\n"
+                "Please review the attached offer letter and let us know your "
+                "decision by the end of next week.\n\n"
+                "We look forward to hearing from you.\n\n"
+                "Best regards,\n"
+                "HR Team"
+            ),
+            "language": "English",
+            "expect": "professional reply expressing interest or asking questions",
+            "context": {"app": "email", "name": "Lars"},
+        },
+        # Danish replies
+        {
+            "name": "Danish - reply to work email",
+            "input": (
+                "Hej Lars,\n\n"
+                "Jeg skriver for at høre om du har tid til at hjælpe med "
+                "projektet i næste uge. Vi mangler en ekstra udvikler til at "
+                "færdiggøre backend-arbejdet, og jeg tænkte du ville være perfekt "
+                "til opgaven.\n\n"
+                "Det drejer sig om cirka 20 timer fordelt over mandag til onsdag. "
+                "Kan du give mig besked hurtigst muligt?\n\n"
+                "Venlig hilsen,\n"
+                "Peter"
+            ),
+            "language": "Danish",
+            "expect": "Danish reply about availability",
+            "context": {"app": "email", "name": "Lars"},
+        },
+        {
+            "name": "Danish - casual chat reply",
+            "input": (
+                "hej skal vi tage en øl efter arbejde i dag? "
+                "der er åbnet en ny bar nede på havnen som jeg gerne vil prøve. "
+                "de har angiveligt verdens bedste ipa'er 🍺"
+            ),
+            "language": "Danish",
+            "expect": "casual Danish reply to invitation",
+            "context": {"app": "chat"},
+        },
+        # German replies
+        {
+            "name": "German - formal business reply",
+            "input": (
+                "Sehr geehrter Herr Rasmussen,\n\n"
+                "vielen Dank für Ihre Anfrage bezüglich unserer Dienstleistungen. "
+                "Wir freuen uns über Ihr Interesse an einer Zusammenarbeit.\n\n"
+                "Gerne würde ich Ihnen unser Angebot persönlich vorstellen. "
+                "Wären Sie nächste Woche für ein Gespräch verfügbar?\n\n"
+                "Mit freundlichen Grüßen,\n"
+                "Thomas Müller"
+            ),
+            "language": "German",
+            "expect": "formal German reply",
+            "context": {"app": "email"},
+        },
+        # Spanish replies
+        {
+            "name": "Spanish - reply to inquiry",
+            "input": (
+                "Estimado cliente,\n\n"
+                "Gracias por contactarnos. Hemos recibido su solicitud y la "
+                "estamos procesando. Un miembro de nuestro equipo se pondrá en "
+                "contacto con usted en las próximas 24-48 horas para discutir "
+                "los detalles de su proyecto.\n\n"
+                "Mientras tanto, si tiene alguna pregunta adicional, no dude "
+                "en responder a este correo.\n\n"
+                "Saludos cordiales,\n"
+                "Equipo de Ventas"
+            ),
+            "language": "Spanish",
+            "expect": "Spanish reply thanking them",
+            "context": {"app": "email"},
+        },
+        # French replies
+        {
+            "name": "French - casual message reply",
+            "input": (
+                "Salut!\n\n"
+                "Ça te dit de venir à ma fête d'anniversaire samedi prochain? "
+                "Ce sera chez moi à partir de 20h. Il y aura de la musique, "
+                "des boissons et un barbecue si le temps le permet.\n\n"
+                "Fais-moi savoir si tu peux venir!\n\n"
+                "Bisous"
+            ),
+            "language": "French",
+            "expect": "French reply to party invitation",
+            "context": {"app": "chat"},
+        },
+        # Edge cases
+        {
+            "name": "English - short acknowledgment",
+            "input": "Got it, thanks!",
+            "language": "English",
+            "expect": "brief acknowledgment",
+            "context": {"app": "chat"},
+        },
+        {
+            "name": "English - technical question",
+            "input": (
+                "Hey, I'm stuck on this Kubernetes issue. The pods keep crashing "
+                "with OOMKilled errors even though I've set the memory limits to 2Gi. "
+                "I've checked the application logs and there's no memory leak that I can see. "
+                "Any ideas what might be causing this?"
+            ),
+            "language": "English",
+            "expect": "helpful technical response",
+            "context": {"app": "chat"},
         },
     ],
     "cli": [
