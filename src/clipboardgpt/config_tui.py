@@ -24,19 +24,7 @@ from textual.widgets import (
 )
 from textual.screen import Screen
 
-CONFIG_PATH = os.path.expanduser("~/.config/clipboardgpt/config.toml")
-
-DEFAULT_PROMPTS = {
-    "grammar": (
-        "Fix grammar in the following text in the language that is provided "
-        "and rewrite it to make more sense if it is too confusing. "
-        "REPLY ONLY with the improved text and nothing else:"
-    ),
-    "reply": (
-        "Write a response to the following message. "
-        "Reply ONLY with the response and nothing else in the original language:"
-    ),
-}
+from clipboardgpt.constants import CONFIG_PATH, DEFAULT_PROMPTS
 
 
 class ConfigModel:
@@ -45,7 +33,20 @@ class ConfigModel:
     def __init__(self):
         """Initialize the config model with empty data."""
         self.data: dict = {"prompts": {}}
+        self._ensure_config_exists()
         self.load()
+
+    def _ensure_config_exists(self):
+        """Create config file with defaults if it doesn't exist."""
+        if not os.path.exists(CONFIG_PATH):
+            os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+            self.data = {
+                "openai_api_key": "",
+                "name": "",
+                "model": "gpt-4o",
+                "prompts": dict(DEFAULT_PROMPTS),
+            }
+            self.save()
 
     def load(self):
         """Load configuration from disk and ensure defaults exist."""
@@ -110,20 +111,20 @@ class GeneralSettings(Container):
 
     def on_mount(self):
         """Load current values when mounted."""
-        model = self.app.model
-        self.query_one("#api_key").value = model.data.get("openai_api_key", "")
-        self.query_one("#user_name").value = model.data.get("name", "")
-        self.query_one("#model").value = model.data.get("model", "gpt-4o")
+        model = self.app.model  # type: ignore[attr-defined]
+        self.query_one("#api_key", Input).value = model.data.get("openai_api_key", "")
+        self.query_one("#user_name", Input).value = model.data.get("name", "")
+        self.query_one("#model", Input).value = model.data.get("model", "gpt-4o")
 
     def on_button_pressed(self, event: Button.Pressed):
         """Handle save button press."""
         if event.button.id == "save_general":
-            model = self.app.model
-            model.data["openai_api_key"] = self.query_one("#api_key").value
-            model.data["name"] = self.query_one("#user_name").value
-            model.data["model"] = self.query_one("#model").value
+            model = self.app.model  # type: ignore[attr-defined]
+            model.data["openai_api_key"] = self.query_one("#api_key", Input).value
+            model.data["name"] = self.query_one("#user_name", Input).value
+            model.data["model"] = self.query_one("#model", Input).value
             _, msg = model.save()
-            self.query_one("#status_general").update(msg)
+            self.query_one("#status_general", Label).update(msg)
 
 
 class PromptEditor(Container):
@@ -144,7 +145,7 @@ class PromptEditor(Container):
         prompt_items = []
         for key in self.model.data.get("prompts", {}):
             item = ListItem(Label(key))
-            item.prompt_key = key
+            item.prompt_key = key  # type: ignore[attr-defined]
             prompt_items.append(item)
 
         with Horizontal():
@@ -165,11 +166,11 @@ class PromptEditor(Container):
 
     async def reload_prompts_list(self):
         """Reload the prompts list from the model."""
-        list_view = self.query_one("#prompt_list")
+        list_view = self.query_one("#prompt_list", ListView)
         await list_view.clear()
         for key in self.model.data.get("prompts", {}):
             item = ListItem(Label(key))
-            item.prompt_key = key
+            item.prompt_key = key  # type: ignore[attr-defined]
             await list_view.append(item)
 
     def on_list_view_selected(self, event: ListView.Selected):
@@ -178,10 +179,12 @@ class PromptEditor(Container):
         if key is None:
             return
         self.current_prompt_key = key
-        self.query_one("#prompt_key").value = key
-        self.query_one("#prompt_key").disabled = True
-        self.query_one("#prompt_text").text = self.model.data["prompts"].get(key, "")
-        self.query_one("#status_prompt").update(f"Loaded prompt: {key}")
+        self.query_one("#prompt_key", Input).value = key
+        self.query_one("#prompt_key", Input).disabled = True
+        self.query_one("#prompt_text", TextArea).text = self.model.data["prompts"].get(
+            key, ""
+        )
+        self.query_one("#status_prompt", Label).update(f"Loaded prompt: {key}")
 
     async def on_button_pressed(self, event: Button.Pressed):
         """Handle button presses for new, save, and delete."""
@@ -195,21 +198,21 @@ class PromptEditor(Container):
     def _handle_new_prompt(self):
         """Clear form for new prompt entry."""
         self.current_prompt_key = None
-        self.query_one("#prompt_key").value = ""
-        self.query_one("#prompt_key").disabled = False
-        self.query_one("#prompt_text").text = ""
-        self.query_one("#prompt_text").focus()
-        self.query_one("#status_prompt").update(
+        self.query_one("#prompt_key", Input).value = ""
+        self.query_one("#prompt_key", Input).disabled = False
+        self.query_one("#prompt_text", TextArea).text = ""
+        self.query_one("#prompt_text", TextArea).focus()
+        self.query_one("#status_prompt", Label).update(
             "New prompt created. Enter key and text."
         )
 
     async def _handle_save_prompt(self):
         """Save the current prompt."""
-        key = self.query_one("#prompt_key").value.strip()
-        text = self.query_one("#prompt_text").text
+        key = self.query_one("#prompt_key", Input).value.strip()
+        text = self.query_one("#prompt_text", TextArea).text
 
         if not key:
-            self.query_one("#status_prompt").update("Error: Key is required")
+            self.query_one("#status_prompt", Label).update("Error: Key is required")
             return
 
         if self.current_prompt_key and self.current_prompt_key != key:
@@ -218,10 +221,10 @@ class PromptEditor(Container):
 
         self.model.data["prompts"][key] = text
         _, msg = self.model.save()
-        self.query_one("#status_prompt").update(msg)
+        self.query_one("#status_prompt", Label).update(msg)
         await self.reload_prompts_list()
         self.current_prompt_key = key
-        self.query_one("#prompt_key").disabled = True
+        self.query_one("#prompt_key", Input).disabled = True
 
     async def _handle_delete_prompt(self):
         """Delete the currently selected prompt."""
@@ -232,10 +235,10 @@ class PromptEditor(Container):
             del self.model.data["prompts"][self.current_prompt_key]
             self.model.save()
             await self.reload_prompts_list()
-            self.query_one("#prompt_key").value = ""
-            self.query_one("#prompt_text").text = ""
+            self.query_one("#prompt_key", Input).value = ""
+            self.query_one("#prompt_text", TextArea).text = ""
             self.current_prompt_key = None
-            self.query_one("#status_prompt").update("Prompt deleted.")
+            self.query_one("#status_prompt", Label).update("Prompt deleted.")
 
 
 class GeneralSettingsScreen(Screen):
