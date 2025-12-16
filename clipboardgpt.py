@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
+"""
+ClipboardGPT: A tool to process clipboard text using OpenAI's GPT models.
+"""
 import os
 import argparse
 import subprocess
+import logging
+from typing import Optional, Tuple, List, Dict, Any
 from dotenv import load_dotenv
 from openai import OpenAI
+from plyer import notification
+import pyperclip
 
 # Load environment variables from .env file
 load_dotenv()
@@ -11,9 +18,6 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 client = OpenAI(api_key=OPENAI_API_KEY)
-from plyer import notification
-import pyperclip
-import logging
 
 # get home dir
 home = os.path.expanduser("~")
@@ -31,6 +35,9 @@ logging.basicConfig(
 
 
 class ClipboardGPT:
+    """
+    Main class for ClipboardGPT functionality.
+    """
     def __init__(self, handler_type, config=None):
         self.type = handler_type
         self.config = config
@@ -86,29 +93,32 @@ class ClipboardGPT:
         self.model = model
 
     def get_gpt_response(
-        self, prompt: str, model: str = None, systemprompt: str = None
+        self,
+        prompt: str,
+        model: Optional[str] = None,
+        systemprompt: Optional[str] = None,
     ):
         """Get response from GPT"""
         systemprompt = systemprompt or self.system_prompt
         model = model or self.model
-        messages = [{"role": "user", "content": prompt}]
+        messages: List[Dict[str, Any]] = [{"role": "user", "content": prompt}]
         if systemprompt:
             messages.insert(0, {"role": "system", "content": systemprompt})
         model_engine = model
-        response = client.chat.completions.create(model=model_engine, messages=messages)
+        response = client.chat.completions.create(model=model_engine, messages=messages)  # type: ignore
         message = response.choices[0].message.content
         return message
 
     def show_notification(self, message, timeout=5):
         """Show notification"""
-        notification.notify(
+        notification.notify(  # type: ignore
             title=self.app_name,
             message=message,
             app_name=self.app_name,
             timeout=timeout,  # Duration in seconds
         )
 
-    def get_title_and_medium_from_active_window(self) -> str:
+    def get_title_and_medium_from_active_window(self) -> Tuple[str, str]:
         """function that returns the medium (email,chat,etc) from the window title) using xdotool"""
         chat_names = [
             "teams",
@@ -179,15 +189,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
     clipboardgpt = ClipboardGPT(args.type)
     APP_NAME = clipboardgpt.app_name
-    logger = logging.getLogger(APP_NAME)
-
-    windowtitle, args.medium = clipboardgpt.get_title_and_medium_from_active_window()
+    text = ""
     if args.source == "selection":
         text = clipboardgpt.get_selected_text()
     # compose prompt
     PROMPT = ""
     title, medium = clipboardgpt.get_title_and_medium_from_active_window()
-    if medium == "chat" or medium == "email":
+    if medium in ("chat", "email"):
         PROMPT += f"medium: {medium}\n"
         PROMPT += f"window name: {title}\n"
     if args.context != "":
@@ -200,4 +208,5 @@ if __name__ == "__main__":
         )
         gpt_response = clipboardgpt.get_gpt_response(PROMPT, args.model)
         clipboardgpt.show_notification(f"{gpt_response}")
-        pyperclip.copy(gpt_response)
+        if gpt_response:
+            pyperclip.copy(gpt_response)

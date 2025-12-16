@@ -6,7 +6,7 @@ This tool is a simple clipboard manager that uses the Openai API to generate tex
 1. Clone the repository
 2. Install the requirements
 ```bash
-pipenv install
+uv sync
 ```
 3. Create a .env file with the following content:
 ```
