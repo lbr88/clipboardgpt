@@ -26,37 +26,226 @@ import pyperclip
 CONFIG_PATH = os.path.expanduser("~/.config/clipboardgpt/config.toml")
 
 
+def config_manager_main():
+    """Interactive configuration manager"""
+    print(f"ClipboardGPT Configuration Manager")
+    print(f"Config file: {CONFIG_PATH}")
+
+    while True:
+        # Reload config
+        current_config = {}
+        if os.path.exists(CONFIG_PATH):
+            try:
+                with open(CONFIG_PATH, "rb") as f:
+                    current_config = tomllib.load(f)
+            except Exception:
+                pass
+
+        print("\n--- Main Menu ---")
+        print("1. Edit General Settings (API Key, Name, Model)")
+        print("2. Manage Prompts")
+        print("3. Exit")
+
+        choice = input("Select an option: ").strip()
+
+        if choice == "1":
+            setup_config()
+        elif choice == "2":
+            manage_prompts(current_config)
+        elif choice == "3":
+            sys.exit(0)
+        else:
+            print("Invalid option.")
+
+
+def manage_prompts(current_config):
+    """Sub-menu for managing prompts"""
+    while True:
+        prompts = current_config.get("prompts", {})
+        print("\n--- Manage Prompts ---")
+        print("1. List Prompts")
+        print("2. Add New Prompt")
+        print("3. Edit Existing Prompt")
+        print("4. Delete Prompt")
+        print("5. Back to Main Menu")
+
+        choice = input("Select an option: ").strip()
+
+        if choice == "1":
+            print("\nCurrent Prompts:")
+            for k, v in prompts.items():
+                print(f"  - {k}: {v[:50]}..." if len(v) > 50 else f"  - {k}: {v}")
+
+        elif choice == "2":
+            key = input("Enter new prompt key (e.g., 'summarize'): ").strip()
+            if not key:
+                print("Key cannot be empty.")
+                continue
+            if key in prompts:
+                print(f"Prompt '{key}' already exists. Use Edit instead.")
+                continue
+
+            print("Enter prompt text (press Enter twice to finish):")
+            lines = []
+            while True:
+                line = input()
+                if not line and lines and not lines[-1]:
+                    break
+                lines.append(line)
+            value = "\n".join(lines).strip()
+
+            prompts[key] = value
+            save_prompts(current_config, prompts)
+            print(f"Prompt '{key}' added.")
+
+        elif choice == "3":
+            key = input("Enter prompt key to edit: ").strip()
+            if key not in prompts:
+                print(f"Prompt '{key}' not found.")
+                continue
+
+            print(f"Current text for '{key}':")
+            print(prompts[key])
+            print(
+                "\nEnter new text (press Enter twice to finish, or just Enter to keep current):"
+            )
+            lines = []
+            while True:
+                line = input()
+                if not line and lines and not lines[-1]:
+                    break
+                lines.append(line)
+            value = "\n".join(lines).strip()
+
+            if value:
+                prompts[key] = value
+                save_prompts(current_config, prompts)
+                print(f"Prompt '{key}' updated.")
+            else:
+                print("No changes made.")
+
+        elif choice == "4":
+            key = input("Enter prompt key to delete: ").strip()
+            if key not in prompts:
+                print(f"Prompt '{key}' not found.")
+                continue
+
+            confirm = input(f"Are you sure you want to delete '{key}'? (y/N): ").lower()
+            if confirm == "y":
+                del prompts[key]
+                save_prompts(current_config, prompts)
+                print(f"Prompt '{key}' deleted.")
+
+        elif choice == "5":
+            break
+
+
+def save_prompts(config_data, prompts):
+    """Helper to save prompts back to config file"""
+    # Update the config object
+    config_data["prompts"] = prompts
+
+    try:
+        os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+            # Write general settings
+            if "openai_api_key" in config_data:
+                f.write(f'openai_api_key = "{config_data["openai_api_key"]}"\n')
+            if "name" in config_data:
+                f.write(f'name = "{config_data["name"]}"\n')
+            if "model" in config_data:
+                f.write(f'model = "{config_data["model"]}"\n')
+
+            # Write prompts
+            f.write("\n[prompts]\n")
+            for k, v in prompts.items():
+                # Escape triple quotes if necessary, though simple replacement is usually enough for config files
+                safe_v = v.replace('"""', '\\"\\"\\"')
+                f.write(f'{k} = """{safe_v}"""\n')
+
+    except Exception as e:
+        print(f"Failed to save config: {e}")
+
+
 def setup_config():
     """Interactive configuration setup"""
     print(f"Setting up configuration at {CONFIG_PATH}")
+
+    existing_config = {}
     if os.path.exists(CONFIG_PATH):
-        overwrite = (
-            input(f"Config file already exists at {CONFIG_PATH}. Overwrite? (y/N): ")
-            .lower()
-            .strip()
-        )
-        if overwrite != "y":
-            print("Aborted.")
-            sys.exit(0)
+        try:
+            with open(CONFIG_PATH, "rb") as f:
+                existing_config = tomllib.load(f)
+        except Exception:
+            pass
 
-    os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+    # Get existing values
+    default_api_key = existing_config.get("openai_api_key", "")
+    default_name = existing_config.get("name", "")
+    default_model = existing_config.get("model", "gpt-4o")
 
-    api_key = input("Enter your OpenAI API Key: ").strip()
+    # Mask API key for display
+    if default_api_key and len(default_api_key) > 8:
+        display_key = f"{default_api_key[:4]}...{default_api_key[-4:]}"
+    else:
+        display_key = default_api_key
+
+    # API Key
+    prompt_key = (
+        f"Enter your OpenAI API Key [{display_key}]: "
+        if display_key
+        else "Enter your OpenAI API Key: "
+    )
+    api_key = input(prompt_key).strip()
     if not api_key:
-        print("API Key is required.")
-        sys.exit(1)
+        if default_api_key:
+            api_key = default_api_key
+        else:
+            print("API Key is required.")
+            sys.exit(1)
 
-    name = input("Enter your Name (for ReplyGPT context): ").strip()
-    model = input("Enter Model (default: gpt-4o): ").strip() or "gpt-4o"
+    # Name
+    prompt_name = f"Enter your Name (for ReplyGPT context) [{default_name}]: "
+    name = input(prompt_name).strip()
+    if not name:
+        name = default_name
+
+    # Model
+    prompt_model = f"Enter Model [{default_model}]: "
+    model = input(prompt_model).strip()
+    if not model:
+        model = default_model
+
+    # Prompts
+    prompts = existing_config.get("prompts", {})
+    default_grammar = prompts.get(
+        "grammar",
+        "Fix grammar in the following text in the language that is is provided and rewrite it to make more sense if it is too confusing. REPLY ONLY with the improved text and nothing else:",
+    )
+    default_reply = prompts.get(
+        "reply",
+        "Write a response to the following message. Reply ONLY with the response and nothing else in the original language:",
+    )
 
     try:
+        os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
         with open(CONFIG_PATH, "w", encoding="utf-8") as f:
             f.write(f'openai_api_key = "{api_key}"\n')
             if name:
                 f.write(f'name = "{name}"\n')
             f.write(f'model = "{model}"\n')
+
+            f.write("\n[prompts]\n")
+            f.write(f'grammar = """{default_grammar}"""\n')
+            f.write(f'reply = """{default_reply}"""\n')
+
+            # Preserve custom prompts
+            for k, v in prompts.items():
+                if k not in ["grammar", "reply"]:
+                    f.write(f'{k} = """{v}"""\n')
+
         print(f"Configuration saved to {CONFIG_PATH}")
-        print("You can now run grammargpt or replygpt.")
+        print("You can now run clipboardgpt.")
     except Exception as e:
         print(f"Failed to write config: {e}")
         sys.exit(1)
@@ -177,31 +366,28 @@ class ClipboardGPT:
 
     def get_app_name_from_type(self, handler_type):
         """Get app name based on handler type"""
-        match handler_type:
-            case "reply":
-                return "ReplyGPT"
-            case "grammar":
-                return "GrammarGPT"
-        return "GPT"
+        return f"{handler_type.capitalize()}GPT"
 
     def get_system_prompt_from_type(self, handler_type):
         """Get system prompt based on handler type"""
-        match handler_type:
-            case "reply":
-                return (
-                    "Write a response to the following message. "
-                    "Reply ONLY with the response and nothing "
-                    "else in the original language:"
-                )
-            case "grammar":
-                return (
-                    "Fix grammar in the following text "
-                    "in the language that is is provided "
-                    "and rewrite it to make more sense if "
-                    "it is too confusing. "
-                    "REPLY ONLY with the improved text and nothing else:"
-                )
-        raise ValueError(f"Handler type {handler_type} not allowed")
+        # Check config for custom prompts
+        if self.config and "prompts" in self.config:
+            if handler_type in self.config["prompts"]:
+                return self.config["prompts"][handler_type]
+
+        # Fallback for backward compatibility if config isn't updated yet
+        defaults = {
+            "grammar": "Fix grammar in the following text in the language that is is provided and rewrite it to make more sense if it is too confusing. REPLY ONLY with the improved text and nothing else:",
+            "reply": "Write a response to the following message. Reply ONLY with the response and nothing else in the original language:",
+        }
+
+        if handler_type in defaults:
+            return defaults[handler_type]
+
+        # If not found in config or defaults
+        raise ValueError(
+            f"Handler type '{handler_type}' not found in config [prompts]. Please run --setup to add it."
+        )
 
     def get_selected_text(self):
         """Get selected text"""
@@ -338,13 +524,16 @@ class ClipboardGPT:
 
 def main(args_list=None):
     """Main entry point"""
+    if "--setup" in sys.argv:
+        setup_config()
+        sys.exit(0)
+
     try:
         parser = argparse.ArgumentParser(description="Get GPT Response")
         parser.add_argument(
             "--type",
-            choices=["grammar", "reply"],
             default="grammar",
-            help="Type of response (grammar or reply)",
+            help="Type of response (grammar, reply, or custom key in config)",
         )
         parser.add_argument(
             "--source",
@@ -365,7 +554,15 @@ def main(args_list=None):
             help="Model to use (gpt-4 or gpt-3.5-turbo)",
         )
         args = parser.parse_args(args_list)
-        clipboardgpt = ClipboardGPT(args.type)
+
+        # Ensure API key is present
+        if not OPENAI_API_KEY:
+            print("Error: OPENAI_API_KEY not found.")
+            print("Please set it in your environment or in the config file.")
+            print("Or run with --setup to configure.")
+            sys.exit(1)
+
+        clipboardgpt = ClipboardGPT(args.type, config=config)
         clipboardgpt.logger.info("Starting main with args: %s", args)
         text = ""
         if args.source == "selection":
@@ -374,6 +571,19 @@ def main(args_list=None):
         # compose prompt
         PROMPT = ""
         title, medium = clipboardgpt.get_title_and_medium_from_active_window()
+
+        # Format system prompt with variables if available
+        try:
+            clipboardgpt.system_prompt = clipboardgpt.system_prompt.format(
+                name=config.get("name", ""),
+                medium=medium,
+                window_title=title,
+                clipboard_text=text,
+            )
+        except KeyError:
+            # Ignore formatting errors if keys are missing in the prompt string
+            pass
+
         if medium in ("chat", "email"):
             PROMPT += f"medium: {medium}\n"
             PROMPT += f"window name: {title}\n"
@@ -411,61 +621,6 @@ def main(args_list=None):
         except Exception:
             pass
         raise e
-
-
-def grammar_main():
-    """Entry point for grammar checking"""
-    if "--setup" in sys.argv:
-        setup_config()
-
-    model = os.getenv("MODEL") or config.get("model")
-    if not model:
-        print("Please set the MODEL environment variable or 'model' in config.toml")
-        print("Or run with --setup to configure.")
-        sys.exit(1)
-
-    if not OPENAI_API_KEY:
-        print("Error: OPENAI_API_KEY not found.")
-        print("Please set it in your environment or in the config file.")
-        print("Or run with --setup to configure.")
-        sys.exit(1)
-
-    # Construct arguments
-    args = ["--type", "grammar", "--model", model] + sys.argv[1:]
-    main(args)
-
-
-def reply_main():
-    """Entry point for replying"""
-    if "--setup" in sys.argv:
-        setup_config()
-
-    name = os.getenv("NAME") or config.get("name")
-    if not name:
-        print("Please set the NAME environment variable or 'name' in config.toml")
-        print("Or run with --setup to configure.")
-        sys.exit(1)
-
-    model = os.getenv("MODEL") or config.get("model")
-    if not model:
-        print("Please set the MODEL environment variable or 'model' in config.toml")
-        print("Or run with --setup to configure.")
-        sys.exit(1)
-
-    if not OPENAI_API_KEY:
-        print("Error: OPENAI_API_KEY not found.")
-        print("Please set it in your environment or in the config file.")
-        print("Or run with --setup to configure.")
-        sys.exit(1)
-
-    context = (
-        f"Use my name to sign off the message if it's an email "
-        f"otherwise don't use my name: My name: {name}"
-    )
-
-    # Construct arguments
-    args = ["--type", "reply", "--model", model, "--context", context] + sys.argv[1:]
-    main(args)
 
 
 if __name__ == "__main__":
