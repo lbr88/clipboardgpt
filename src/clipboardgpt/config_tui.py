@@ -44,6 +44,7 @@ class ConfigModel:
                 "openai_api_key": "",
                 "name": "",
                 "model": "gpt-4o",
+                "menu_command": "rofi -dmenu -p 'ClipboardGPT'",
                 "prompts": dict(DEFAULT_PROMPTS),
             }
             self.save()
@@ -84,11 +85,24 @@ class ConfigModel:
                     f.write(f'name = "{self.data["name"]}"\n')
                 if "model" in self.data:
                     f.write(f'model = "{self.data["model"]}"\n')
+                if "menu_command" in self.data:
+                    f.write(f'menu_command = "{self.data["menu_command"]}"\n')
 
-                f.write("\n[prompts]\n")
-                for k, v in self.data.get("prompts", {}).items():
-                    safe_v = v.replace('"""', '\\"\\"\\"')
-                    f.write(f'{k} = """{safe_v}"""\n')
+                for prompt_name, prompt_data in self.data.get("prompts", {}).items():
+                    f.write(f"\n[prompts.{prompt_name}]\n")
+                    if isinstance(prompt_data, dict):
+                        if "system" in prompt_data:
+                            safe = prompt_data["system"].replace('"""', '\\"\\"\\"')
+                            f.write(f'system = """{safe}"""\n')
+                        if "user" in prompt_data:
+                            safe = prompt_data["user"].replace('"""', '\\"\\"\\"')
+                            f.write(f'user = """{safe}"""\n')
+                    else:
+                        # Legacy format - just a string
+                        safe = str(prompt_data).replace('"""', '\\"\\"\\"')
+                        f.write(f'system = """{safe}"""\n')
+                        f.write('user = "{text}"\n')
+
             return True, "Saved successfully"
         except OSError as e:
             return False, str(e)
@@ -102,10 +116,15 @@ class GeneralSettings(Container):
         with VerticalScroll():
             yield Label("OpenAI API Key")
             yield Input(placeholder="sk-...", id="api_key", password=True)
-            yield Label("Your Name")
+            yield Label("Your Name (used in prompt templates as {name})")
             yield Input(placeholder="John Doe", id="user_name")
-            yield Label("Model")
+            yield Label("Default Model")
             yield Input(placeholder="gpt-4o", id="model", value="gpt-4o")
+            yield Label("Menu Command (for i3/rofi/dmenu)")
+            yield Input(
+                placeholder="rofi -dmenu -p 'ClipboardGPT'",
+                id="menu_command",
+            )
             yield Button("Save General Settings", variant="primary", id="save_general")
             yield Label("", id="status_general")
 
@@ -115,6 +134,9 @@ class GeneralSettings(Container):
         self.query_one("#api_key", Input).value = model.data.get("openai_api_key", "")
         self.query_one("#user_name", Input).value = model.data.get("name", "")
         self.query_one("#model", Input).value = model.data.get("model", "gpt-4o")
+        self.query_one("#menu_command", Input).value = model.data.get(
+            "menu_command", "rofi -dmenu -p 'ClipboardGPT'"
+        )
 
     def on_button_pressed(self, event: Button.Pressed):
         """Handle save button press."""
@@ -123,12 +145,13 @@ class GeneralSettings(Container):
             model.data["openai_api_key"] = self.query_one("#api_key", Input).value
             model.data["name"] = self.query_one("#user_name", Input).value
             model.data["model"] = self.query_one("#model", Input).value
+            model.data["menu_command"] = self.query_one("#menu_command", Input).value
             _, msg = model.save()
             self.query_one("#status_general", Label).update(msg)
 
 
 class PromptEditor(Container):
-    """Container for prompt editing interface."""
+    """Container for prompt editing interface with system/user templates."""
 
     def __init__(self, model: ConfigModel):
         """Initialize with a config model.
@@ -157,10 +180,20 @@ class PromptEditor(Container):
                     yield Button("Delete", variant="error", id="delete_prompt")
 
             with Vertical(id="editor_area"):
-                yield Label("Prompt Key", id="key_label")
+                yield Label("Prompt Name", id="key_label")
                 yield Input(placeholder="e.g. summarize", id="prompt_key")
-                yield Label("Prompt Text")
-                yield TextArea(id="prompt_text")
+                yield Label("System Prompt (instructions for the AI)")
+                yield TextArea(id="system_prompt")
+                yield Label("User Prompt Template")
+                yield Label(
+                    "Variables: {text} {context} {window_title} {app} {name}",
+                    id="template_help",
+                )
+                yield Label(
+                    "Conditional: {?var}line only if var is set",
+                    id="template_help2",
+                )
+                yield TextArea(id="user_prompt")
                 yield Button("Save Prompt", variant="primary", id="save_prompt")
                 yield Label("", id="status_prompt")
 
@@ -173,6 +206,14 @@ class PromptEditor(Container):
             item.prompt_key = key  # type: ignore[attr-defined]
             await list_view.append(item)
 
+    def _get_prompt_data(self, key: str) -> tuple[str, str]:
+        """Get system and user prompts for a key."""
+        prompt_data = self.model.data["prompts"].get(key, {})
+        if isinstance(prompt_data, dict):
+            return prompt_data.get("system", ""), prompt_data.get("user", "{text}")
+        # Legacy string format
+        return str(prompt_data), "{text}"
+
     def on_list_view_selected(self, event: ListView.Selected):
         """Handle prompt selection from list."""
         key = getattr(event.item, "prompt_key", None)
@@ -181,10 +222,11 @@ class PromptEditor(Container):
         self.current_prompt_key = key
         self.query_one("#prompt_key", Input).value = key
         self.query_one("#prompt_key", Input).disabled = True
-        self.query_one("#prompt_text", TextArea).text = self.model.data["prompts"].get(
-            key, ""
-        )
-        self.query_one("#status_prompt", Label).update(f"Loaded prompt: {key}")
+
+        system_prompt, user_prompt = self._get_prompt_data(key)
+        self.query_one("#system_prompt", TextArea).text = system_prompt
+        self.query_one("#user_prompt", TextArea).text = user_prompt
+        self.query_one("#status_prompt", Label).update(f"Loaded: {key}")
 
     async def on_button_pressed(self, event: Button.Pressed):
         """Handle button presses for new, save, and delete."""
@@ -200,26 +242,31 @@ class PromptEditor(Container):
         self.current_prompt_key = None
         self.query_one("#prompt_key", Input).value = ""
         self.query_one("#prompt_key", Input).disabled = False
-        self.query_one("#prompt_text", TextArea).text = ""
-        self.query_one("#prompt_text", TextArea).focus()
+        self.query_one("#system_prompt", TextArea).text = ""
+        self.query_one("#user_prompt", TextArea).text = "{text}"
+        self.query_one("#prompt_key", Input).focus()
         self.query_one("#status_prompt", Label).update(
-            "New prompt created. Enter key and text."
+            "Enter prompt name and templates"
         )
 
     async def _handle_save_prompt(self):
         """Save the current prompt."""
         key = self.query_one("#prompt_key", Input).value.strip()
-        text = self.query_one("#prompt_text", TextArea).text
+        system_text = self.query_one("#system_prompt", TextArea).text
+        user_text = self.query_one("#user_prompt", TextArea).text
 
         if not key:
-            self.query_one("#status_prompt", Label).update("Error: Key is required")
+            self.query_one("#status_prompt", Label).update("Error: Name is required")
             return
 
         if self.current_prompt_key and self.current_prompt_key != key:
             if self.current_prompt_key in self.model.data["prompts"]:
                 del self.model.data["prompts"][self.current_prompt_key]
 
-        self.model.data["prompts"][key] = text
+        self.model.data["prompts"][key] = {
+            "system": system_text,
+            "user": user_text or "{text}",
+        }
         _, msg = self.model.save()
         self.query_one("#status_prompt", Label).update(msg)
         await self.reload_prompts_list()
@@ -236,7 +283,8 @@ class PromptEditor(Container):
             self.model.save()
             await self.reload_prompts_list()
             self.query_one("#prompt_key", Input).value = ""
-            self.query_one("#prompt_text", TextArea).text = ""
+            self.query_one("#system_prompt", TextArea).text = ""
+            self.query_one("#user_prompt", TextArea).text = "{text}"
             self.current_prompt_key = None
             self.query_one("#status_prompt", Label).update("Prompt deleted.")
 
@@ -337,8 +385,8 @@ class ClipboardGPTConfigApp(App):
     }
 
     #sidebar {
-        width: 30%;
-        min-width: 20;
+        width: 25%;
+        min-width: 15;
         height: 100%;
         min-height: 15;
         background: $surface;
@@ -366,10 +414,22 @@ class ClipboardGPTConfigApp(App):
     }
 
     #editor_area {
-        width: 70%;
+        width: 75%;
         height: 100%;
         min-height: 15;
-        padding: 2;
+        padding: 1;
+    }
+
+    #editor_area Label {
+        margin-top: 1;
+        color: $text-muted;
+    }
+
+    #template_help, #template_help2 {
+        color: $text-disabled;
+        text-style: italic;
+        margin-top: 0;
+        margin-bottom: 1;
     }
 
     ListView {
@@ -379,15 +439,22 @@ class ClipboardGPTConfigApp(App):
         margin-bottom: 1;
     }
 
-    TextArea {
-        height: 1fr;
+    #system_prompt {
+        height: 6;
+        min-height: 4;
+        margin-bottom: 1;
+        border: solid $secondary;
+    }
+
+    #user_prompt {
+        height: 8;
         min-height: 5;
-        margin-bottom: 2;
+        margin-bottom: 1;
         border: solid $secondary;
     }
 
     #prompt_key {
-        margin-bottom: 2;
+        margin-bottom: 1;
     }
 
     #status_general, #status_prompt {
