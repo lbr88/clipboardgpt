@@ -79,23 +79,53 @@ clipboardgpt --reset-prompts
 
 ## i3 Configuration
 
-Add these keybindings to your i3 config (`~/.config/i3/config`):
+### Adding Keybindings
 
-```config
-# Show rofi menu to select prompt type
-bindsym $mod+g exec clipboardgpt
+1. Open your i3 config file:
+   ```bash
+   $EDITOR ~/.config/i3/config
+   ```
 
-# Direct shortcuts for specific prompt types
-bindsym $mod+Shift+g exec clipboardgpt -t grammar
-bindsym $mod+Shift+r exec clipboardgpt -t reply
-```
+2. Add these keybindings (customize the keys to your preference):
+   ```config
+   # ClipboardGPT - Show rofi menu to select prompt type
+   bindsym $mod+g exec clipboardgpt
 
-**Workflow:**
+   # ClipboardGPT - Direct shortcuts for specific prompt types
+   bindsym $mod+Shift+g exec clipboardgpt -t grammar
+   bindsym $mod+Shift+r exec clipboardgpt -t reply
+
+   # Optional: Add more shortcuts for custom prompts
+   # bindsym $mod+Shift+s exec clipboardgpt -t summarize
+   # bindsym $mod+Shift+t exec clipboardgpt -t translate
+   ```
+
+3. Reload i3 to apply changes:
+   ```bash
+   # Press $mod+Shift+c to reload config (default i3 keybinding)
+   # Or run: i3-msg reload
+   ```
+
+**Note:** `$mod` is typically the Super/Windows key. Change keybindings to avoid conflicts with your existing i3 config.
+
+### Workflow
+
 1. Select text in any application
 2. Press `$mod+g` to open the prompt selection menu
 3. Choose a prompt type (grammar, reply, or custom)
 4. Wait for the notification with the result
 5. Paste from clipboard (`Ctrl+v`)
+
+### Alternative Menus
+
+If you prefer dmenu or wofi instead of rofi, configure it in `~/.config/clipboardgpt/config.toml`:
+```toml
+# Using dmenu
+menu_command = "dmenu -p 'ClipboardGPT'"
+
+# Using wofi (Wayland)
+menu_command = "wofi --dmenu --prompt 'ClipboardGPT'"
+```
 
 ## Usage
 
