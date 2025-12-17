@@ -186,7 +186,7 @@ class PromptEditor(Container):
                 yield TextArea(id="system_prompt")
                 yield Label("User Prompt Template")
                 yield Label(
-                    "Variables: {text} {context} {window_title} {app} {name}",
+                    "Variables: {text} {context} {window_title} {app} {name} {datetime} {date} {time} {year}",
                     id="template_help",
                 )
                 yield Label(

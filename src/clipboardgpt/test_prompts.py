@@ -2,6 +2,7 @@
 
 import json
 import os
+from datetime import datetime
 from typing import Any
 
 from openai import OpenAI
@@ -577,12 +578,17 @@ def _run_single_test(
     user_template = DEFAULT_PROMPTS[prompt_type]["user"]
 
     # Build variables from case context
+    now = datetime.now()
     variables: dict[str, str] = {
         "text": case["input"],
         "context": "",
         "window_title": "",
         "app": "",
         "name": "",
+        "datetime": now.strftime("%Y-%m-%d %H:%M:%S"),
+        "date": now.strftime("%Y-%m-%d"),
+        "time": now.strftime("%H:%M:%S"),
+        "year": now.strftime("%Y"),
     }
     # Override with case-specific context
     if "context" in case and isinstance(case["context"], dict):

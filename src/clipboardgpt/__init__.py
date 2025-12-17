@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tomllib
 import warnings
+from datetime import datetime
 from typing import Any, Optional
 
 from openai import OpenAI
@@ -536,12 +537,17 @@ class ClipboardGPT:  # pylint: disable=too-many-instance-attributes
         window_title, app_type = self.get_window_info()
 
         # Build variable dictionary
+        now = datetime.now()
         variables = {
             "text": text,
             "context": context,
             "window_title": window_title,
             "app": app_type if app_type != "unknown" else "",
             "name": self.config.get("name", ""),
+            "datetime": now.strftime("%Y-%m-%d %H:%M:%S"),
+            "date": now.strftime("%Y-%m-%d"),
+            "time": now.strftime("%H:%M:%S"),
+            "year": now.strftime("%Y"),
         }
 
         system_prompt = render_template(self.system_template, variables)

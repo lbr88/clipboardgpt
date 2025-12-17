@@ -13,6 +13,16 @@ A clipboard manager that uses OpenAI's GPT to process selected text. Features a 
 
 ## Installation
 
+### Option 1: Install directly from GitHub (recommended for users)
+
+```bash
+uv tool install git+https://github.com/lbr88/clipboardgpt
+```
+
+*Note: Ensure `~/.local/bin` is in your `$PATH`.*
+
+### Option 2: Install from local clone (for development)
+
 1. Clone the repository:
    ```bash
    git clone https://github.com/lbr88/clipboardgpt.git
@@ -23,9 +33,10 @@ A clipboard manager that uses OpenAI's GPT to process selected text. Features a 
    ```bash
    uv tool install .
    ```
-   *Note: Ensure `~/.local/bin` is in your `$PATH`.*
 
-3. Configure the tool using the TUI:
+### Configuration
+
+Configure the tool using the TUI:
    ```bash
    clipboardgpt-config
    ```
@@ -39,6 +50,32 @@ A clipboard manager that uses OpenAI's GPT to process selected text. Features a 
    ```
 
    **Automatic Migration:** Old `.env` files and legacy prompt formats are automatically migrated on first run.
+
+## Updating
+
+### If installed from GitHub
+
+```bash
+# Update to latest version
+uv tool install git+https://github.com/lbr88/clipboardgpt --force --reinstall
+
+# Reset prompts to get the latest default prompts
+clipboardgpt --reset-prompts
+```
+
+### If installed from local clone
+
+After pulling new changes from the repository:
+
+```bash
+# Reinstall to get the latest code
+uv tool install . --force --reinstall
+
+# Reset prompts to get the latest default prompts
+clipboardgpt --reset-prompts
+```
+
+**Note:** `--reset-prompts` updates the default prompts (grammar, reply, cli) while preserving your custom prompts.
 
 ## i3 Configuration
 
@@ -110,6 +147,10 @@ Code:
 | `{window_title}` | Active window title |
 | `{app}` | Application type (chat, email, terminal, editor, browser) |
 | `{name}` | Your name from config |
+| `{datetime}` | Current date and time (e.g., "2025-12-17 14:30:45") |
+| `{date}` | Current date (e.g., "2025-12-17") |
+| `{time}` | Current time (e.g., "14:30:45") |
+| `{year}` | Current year (e.g., "2025") |
 
 ### Conditional Lines
 

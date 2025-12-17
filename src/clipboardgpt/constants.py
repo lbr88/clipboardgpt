@@ -6,7 +6,7 @@ CONFIG_PATH = os.path.expanduser("~/.config/clipboardgpt/config.toml")
 
 # New prompt format: each prompt has 'system' and 'user' templates
 # Templates support {variable} substitution and {?var}conditional lines
-# Available variables: {text}, {context}, {window_title}, {app}, {name}
+# Available variables: {text}, {context}, {window_title}, {app}, {name}, {datetime}, {date}, {time}, {year}
 DEFAULT_PROMPTS: dict[str, dict[str, str]] = {
     "grammar": {
         "system": (
@@ -22,6 +22,7 @@ DEFAULT_PROMPTS: dict[str, dict[str, str]] = {
     "reply": {
         "system": (
             "Write a response to the following message.\n\n"
+            "{?datetime}Current date and time: {datetime}\n\n"
             "RULES:\n"
             "- Respond in the SAME LANGUAGE as the message\n"
             "- Match the tone and formality\n"
